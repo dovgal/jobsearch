@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
+import yaml
 from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,7 +23,54 @@ from pipeline.orchestrator import Orchestrator
 BASE_DIR = Path(__file__).resolve().parent
 REPO_DIR = BASE_DIR.parent
 OUTPUT_DIR = REPO_DIR / "output"
+CONFIG_PATH = REPO_DIR / "config" / "config.yaml"
+ENV_PATH = REPO_DIR / ".env"
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# .env helpers
+# ---------------------------------------------------------------------------
+
+def _read_env() -> dict[str, str]:
+    result: dict[str, str] = {}
+    if not ENV_PATH.exists():
+        return result
+    for line in ENV_PATH.read_text("utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            k, _, v = line.partition("=")
+            result[k.strip()] = v.strip()
+    return result
+
+
+def _write_env(updates: dict[str, str]) -> None:
+    lines: list[str] = []
+    existing_keys: set[str] = set()
+
+    if ENV_PATH.exists():
+        for line in ENV_PATH.read_text("utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                lines.append(line)
+                continue
+            if "=" in stripped:
+                k = stripped.partition("=")[0].strip()
+                existing_keys.add(k)
+                if k in updates:
+                    lines.append(f"{k}={updates[k]}")
+                else:
+                    lines.append(line)
+            else:
+                lines.append(line)
+
+    for k, v in updates.items():
+        if k not in existing_keys:
+            lines.append(f"{k}={v}")
+
+    ENV_PATH.write_text("\n".join(lines) + "\n", "utf-8")
 
 # ---------------------------------------------------------------------------
 # App
@@ -296,6 +344,70 @@ async def download_file(sid: str, fp: str):
     if path.is_file():
         return FileResponse(str(path), filename=path.name)
     return HTMLResponse("Файл не найден", 404)
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+def _settings_ctx() -> dict:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    env_vals = _read_env()
+    providers_info = []
+    for name, pcfg in (cfg.get("providers") or {}).items():
+        key_env = pcfg.get("api_key_env", "")
+        current_key = env_vals.get(key_env, "") if key_env else ""
+        providers_info.append({
+            "name": name,
+            "label": name.capitalize(),
+            "key_env": key_env,
+            "model": pcfg.get("model", ""),
+            "has_key": bool(current_key),
+            "key_masked": ("●" * 8 + current_key[-4:]) if len(current_key) > 4 else ("●" * len(current_key) if current_key else ""),
+        })
+
+    return {
+        "providers": providers_info,
+        "default_provider": cfg.get("default_provider", "ollama"),
+        "all_provider_names": [p["name"] for p in providers_info],
+        "saved": False,
+    }
+
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    ctx = _settings_ctx()
+    return templates.TemplateResponse(request, "settings.html", ctx)
+
+
+@app.post("/settings", response_class=HTMLResponse)
+async def settings_save(request: Request):
+    form = await request.form()
+
+    # Update default_provider in config.yaml
+    new_default = form.get("default_provider", "")
+    if new_default:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        cfg["default_provider"] = new_default
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    # Update API keys in .env
+    env_updates: dict[str, str] = {}
+    for key, val in form.items():
+        if key.startswith("key_") and val.strip():
+            env_var = key[4:]  # strip "key_" prefix
+            env_updates[env_var] = val.strip()
+
+    if env_updates:
+        _write_env(env_updates)
+
+    ctx = _settings_ctx()
+    ctx["saved"] = True
+    return templates.TemplateResponse(request, "settings.html", ctx)
 
 
 # ---------------------------------------------------------------------------
