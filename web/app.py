@@ -131,7 +131,7 @@ async def home(request: Request):
             "has_strategy": bool(state.get("strategy_path")),
             "has_jobs": bool(state.get("jobs_path")),
         })
-    return templates.TemplateResponse("home.html", {"request": request, "sessions": sessions[:10]})
+    return templates.TemplateResponse(request, "home.html", {"sessions": sessions[:10]})
 
 
 @app.post("/session/new")
@@ -152,8 +152,7 @@ async def new_session(cv_text: str = Form(""), cv_file: Optional[UploadFile] = N
 @app.get("/session/{sid}", response_class=HTMLResponse)
 async def session_page(request: Request, sid: str):
     ctx = _session_ctx(sid)
-    ctx["request"] = request
-    return templates.TemplateResponse("session.html", ctx)
+    return templates.TemplateResponse(request, "session.html", ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -163,8 +162,7 @@ async def session_page(request: Request, sid: str):
 @app.get("/session/{sid}/pipeline", response_class=HTMLResponse)
 async def pipeline_partial(request: Request, sid: str):
     ctx = _session_ctx(sid)
-    ctx["request"] = request
-    return templates.TemplateResponse("partials/pipeline.html", ctx)
+    return templates.TemplateResponse(request, "partials/pipeline.html", ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -185,8 +183,8 @@ async def run_questions(request: Request, sid: str):
         return {"questions": qs}
 
     _start(task_id, _work)
-    return templates.TemplateResponse("partials/task_running.html", {
-        "request": request, "task_id": task_id, "sid": sid,
+    return templates.TemplateResponse(request, "partials/task_running.html", {
+        "task_id": task_id, "sid": sid,
         "message": "Анализирую CV, формулирую вопросы…",
     })
 
@@ -204,8 +202,8 @@ async def submit_intake(request: Request, sid: str, answers_json: str = Form("")
         return orc.strategy(intake_path=str(intake_path))
 
     _start(task_id, _work)
-    return templates.TemplateResponse("partials/task_running.html", {
-        "request": request, "task_id": task_id, "sid": sid,
+    return templates.TemplateResponse(request, "partials/task_running.html", {
+        "task_id": task_id, "sid": sid,
         "message": "Провожу веб-ресёрч и пишу стратегию (~5 мин)…",
     })
 
@@ -241,8 +239,8 @@ async def run_agent(request: Request, sid: str, agent: str,
         return dispatch[agent]()
 
     _start(task_id, _work)
-    return templates.TemplateResponse("partials/task_running.html", {
-        "request": request, "task_id": task_id, "sid": sid,
+    return templates.TemplateResponse(request, "partials/task_running.html", {
+        "task_id": task_id, "sid": sid,
         "message": labels.get(agent, "Запускаю…"),
     })
 
@@ -257,14 +255,14 @@ async def task_status(request: Request, sid: str, task_id: str):
     status = task["status"]
 
     if status == "running":
-        return templates.TemplateResponse("partials/task_running.html", {
-            "request": request, "task_id": task_id, "sid": sid,
+        return templates.TemplateResponse(request, "partials/task_running.html", {
+            "task_id": task_id, "sid": sid,
             "message": "Выполняется…",
         })
 
     if status == "error":
-        return templates.TemplateResponse("partials/task_error.html", {
-            "request": request, "sid": sid,
+        return templates.TemplateResponse(request, "partials/task_error.html", {
+            "sid": sid,
             "error": task.get("error", "Неизвестная ошибка"),
         })
 
@@ -272,11 +270,10 @@ async def task_status(request: Request, sid: str, task_id: str):
     result = task.get("result", {})
     if result.get("stage") == "awaiting_intake":
         ctx = _session_ctx(sid)
-        ctx["request"] = request
-        return templates.TemplateResponse("partials/questions.html", ctx)
+        return templates.TemplateResponse(request, "partials/questions.html", ctx)
 
-    return templates.TemplateResponse("partials/task_done.html", {
-        "request": request, "sid": sid, "result": result,
+    return templates.TemplateResponse(request, "partials/task_done.html", {
+        "sid": sid, "result": result,
     })
 
 
