@@ -1,0 +1,8 @@
+<div hx-get="/session/{{ sid }}/task/{{ task_id }}"
+     hx-trigger="every 3s"
+     hx-swap="outerHTML">
+  <div class="flex items-center gap-3 mt-4" style="padding:4px 0">
+    <div class="spinner"></div>
+    <span class="muted">{{ message }}</span>
+  </div>
+</div>

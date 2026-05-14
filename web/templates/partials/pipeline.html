@@ -1,0 +1,229 @@
+<div id="pipeline">
+
+<!-- ============================================================
+     STRATEGY
+     ============================================================ -->
+<div class="card" id="section-strategy">
+  <div class="card-title">
+    🎯 Стратегия
+    {% if has_strategy %}
+      <span class="badge badge-green">✓ Готово</span>
+    {% elif questions %}
+      <span class="badge badge-yellow">⏳ Ожидает ответов</span>
+    {% else %}
+      <span class="badge badge-muted">Не запущено</span>
+    {% endif %}
+  </div>
+
+  {% if has_strategy %}
+    <div class="flex gap-2 flex-wrap">
+      <a href="/session/{{ sid }}/file/strategy/strategy.md" class="btn btn-ghost btn-sm">⬇ Стратегия.md</a>
+      <a href="/session/{{ sid }}/file/strategy/coaching_questions.json" class="btn btn-ghost btn-sm">⬇ Вопросы.json</a>
+    </div>
+
+  {% elif questions and not has_intake %}
+    <!-- Show questions form -->
+    {% include "partials/questions.html" %}
+
+  {% elif not questions %}
+    <!-- Step 1: generate questions -->
+    <p class="muted mt-2" style="margin-bottom:14px">Сначала Claude прочитает CV и сформирует 15+ уточняющих вопросов.</p>
+    <button class="btn btn-primary"
+            hx-post="/session/{{ sid }}/run/questions"
+            hx-target="#section-strategy"
+            hx-swap="innerHTML"
+            hx-indicator="#section-strategy">
+      Генерировать вопросы →
+    </button>
+  {% endif %}
+</div>
+
+<!-- ============================================================
+     BASE CV
+     ============================================================ -->
+<div class="card {% if not has_strategy %}agent-locked{% endif %}" id="section-base-cv">
+  <div class="card-title">
+    📄 Базовое CV
+    {% if has_base_cv %}
+      <span class="badge badge-green">✓ Готово</span>
+    {% elif not has_strategy %}
+      <span class="badge badge-muted">🔒 Нужна стратегия</span>
+    {% else %}
+      <span class="badge badge-muted">Не запущено</span>
+    {% endif %}
+  </div>
+
+  {% if has_base_cv %}
+    <div class="flex gap-2 flex-wrap">
+      <a href="/session/{{ sid }}/file/base_cv/base_cv.md" class="btn btn-ghost btn-sm">⬇ base_cv.md</a>
+      <a href="/session/{{ sid }}/file/base_cv/ats_report.json" class="btn btn-ghost btn-sm">⬇ ATS-отчёт</a>
+    </div>
+  {% elif has_strategy %}
+    <button class="btn btn-primary"
+            hx-post="/session/{{ sid }}/run/base-cv"
+            hx-target="#section-base-cv"
+            hx-swap="innerHTML">
+      Переписать CV →
+    </button>
+  {% endif %}
+</div>
+
+<!-- ============================================================
+     LINKEDIN
+     ============================================================ -->
+<div class="card {% if not has_base_cv %}agent-locked{% endif %}" id="section-linkedin">
+  <div class="card-title">
+    💼 LinkedIn-профиль
+    {% if has_linkedin %}
+      <span class="badge badge-green">✓ Готово</span>
+    {% elif not has_base_cv %}
+      <span class="badge badge-muted">🔒 Нужно базовое CV</span>
+    {% else %}
+      <span class="badge badge-muted">Не запущено</span>
+    {% endif %}
+  </div>
+
+  {% if has_linkedin %}
+    <a href="/session/{{ sid }}/file/linkedin/profile.md" class="btn btn-ghost btn-sm">⬇ LinkedIn profile.md</a>
+  {% elif has_base_cv %}
+    <button class="btn btn-primary"
+            hx-post="/session/{{ sid }}/run/linkedin"
+            hx-target="#section-linkedin"
+            hx-swap="innerHTML">
+      Создать профиль →
+    </button>
+  {% endif %}
+</div>
+
+<!-- ============================================================
+     VACANCY HUNT
+     ============================================================ -->
+<div class="card {% if not has_strategy %}agent-locked{% endif %}" id="section-hunt">
+  <div class="card-title">
+    🔎 Поиск вакансий
+    {% if has_jobs %}
+      <span class="badge badge-green">✓ {{ jobs|length }} вакансий</span>
+    {% elif not has_strategy %}
+      <span class="badge badge-muted">🔒 Нужна стратегия</span>
+    {% else %}
+      <span class="badge badge-muted">Не запущено</span>
+    {% endif %}
+  </div>
+
+  {% if has_jobs %}
+    <div class="flex gap-2 flex-wrap">
+      <a href="/session/{{ sid }}/vacancies" target="_blank" class="btn btn-primary btn-sm">📋 Просмотр вакансий</a>
+      <a href="/session/{{ sid }}/file/hunt/jobs.json" class="btn btn-ghost btn-sm">⬇ jobs.json</a>
+    </div>
+  {% elif has_strategy %}
+    <p class="muted mt-2" style="margin-bottom:14px">Сканирование LinkedIn, hh.ru и других каналов. Занимает 5–10 минут.</p>
+    <button class="btn btn-primary"
+            hx-post="/session/{{ sid }}/run/hunt"
+            hx-target="#section-hunt"
+            hx-swap="innerHTML">
+      Запустить сканирование →
+    </button>
+  {% endif %}
+</div>
+
+<!-- ============================================================
+     PER-VACANCY: RESUME / OUTREACH / INTERVIEW
+     ============================================================ -->
+{% if has_jobs and has_base_cv and jobs %}
+<div class="card" id="section-per-vacancy">
+  <div class="card-title">✏️ Адаптация резюме / Outreach / Интервью</div>
+  <p class="muted" style="margin-bottom:16px">Выберите вакансию и нужное действие</p>
+
+  <div style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="border-bottom:1px solid var(--border);color:var(--muted)">
+        <th style="text-align:left;padding:8px 4px">Вакансия</th>
+        <th style="text-align:left;padding:8px 4px">Компания</th>
+        <th style="text-align:center;padding:8px 4px">Score</th>
+        <th style="text-align:left;padding:8px 4px">Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for j in jobs %}
+    <tr style="border-bottom:1px solid var(--border)" id="job-{{ j.id }}">
+      <td style="padding:8px 4px">
+        <a href="{{ j.url }}" target="_blank" style="font-weight:600">{{ j.title[:50] }}</a>
+      </td>
+      <td style="padding:8px 4px;color:var(--muted)">{{ j.company[:30] }}</td>
+      <td style="padding:8px 4px;text-align:center">
+        {% set sc = (j.score * 100)|int %}
+        <span style="font-weight:700;color:{% if sc >= 75 %}var(--green){% elif sc >= 55 %}var(--yellow){% else %}var(--muted){% endif %}">
+          {{ sc }}
+        </span>
+      </td>
+      <td style="padding:8px 4px">
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn btn-ghost btn-sm"
+                  hx-post="/session/{{ sid }}/run/resume"
+                  hx-vals='{"job_id":"{{ j.id }}"}'
+                  hx-target="#job-{{ j.id }}"
+                  hx-swap="innerHTML">
+            ✏️ Resume
+          </button>
+          <button class="btn btn-ghost btn-sm"
+                  hx-post="/session/{{ sid }}/run/outreach"
+                  hx-vals='{"job_id":"{{ j.id }}"}'
+                  hx-target="#job-{{ j.id }}"
+                  hx-swap="innerHTML">
+            🤝 Outreach
+          </button>
+          <button class="btn btn-ghost btn-sm"
+                  hx-post="/session/{{ sid }}/run/interview"
+                  hx-vals='{"job_id":"{{ j.id }}"}'
+                  hx-target="#job-{{ j.id }}"
+                  hx-swap="innerHTML">
+            🎤 Interview
+          </button>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ============================================================
+     BULK RESUME
+     ============================================================ -->
+{% if has_jobs and has_base_cv %}
+<div class="card" id="section-bulk">
+  <div class="card-title">📚 Пакетная адаптация Tier B</div>
+  <p class="muted" style="margin-bottom:14px">Лёгкая адаптация под все вакансии Tier B за один проход (70–80% ATS).</p>
+  <button class="btn btn-ghost"
+          hx-post="/session/{{ sid }}/run/bulk-resume"
+          hx-target="#section-bulk"
+          hx-swap="innerHTML">
+    Запустить пакетную адаптацию →
+  </button>
+</div>
+{% endif %}
+
+<!-- ============================================================
+     CONTENT
+     ============================================================ -->
+<div class="card {% if not has_base_cv %}agent-locked{% endif %}" id="section-content">
+  <div class="card-title">
+    📝 LinkedIn-контент
+    {% if not has_base_cv %}<span class="badge badge-muted">🔒 Нужно базовое CV</span>{% endif %}
+  </div>
+
+  {% if has_base_cv %}
+    <p class="muted" style="margin-bottom:14px">4-недельный контент-план + готовые посты в tone of voice клиента.</p>
+    <button class="btn btn-ghost"
+            hx-post="/session/{{ sid }}/run/content"
+            hx-target="#section-content"
+            hx-swap="innerHTML">
+      Создать контент-план →
+    </button>
+  {% endif %}
+</div>
+
+</div><!-- #pipeline -->

@@ -1,0 +1,40 @@
+<div>
+  <p style="font-size:14px;font-weight:600;margin-bottom:16px">
+    Claude сформировал {{ questions|length }} вопросов. Ответьте на них — это основа стратегии.
+  </p>
+
+  <form id="intake-form"
+        hx-post="/session/{{ sid }}/intake"
+        hx-target="#section-strategy"
+        hx-swap="innerHTML">
+    <input type="hidden" name="answers_json" id="answers-json">
+
+    {% for q in questions %}
+    <div style="margin-bottom:20px">
+      <label style="font-size:14px;color:var(--text);font-weight:500;margin-bottom:6px">
+        {{ loop.index }}. {{ q }}
+      </label>
+      <textarea class="answer-input" rows="3"
+                data-question="{{ q | e }}"
+                placeholder="Ваш ответ…"></textarea>
+    </div>
+    {% endfor %}
+
+    <button type="submit"
+            class="btn btn-primary"
+            onclick="buildAnswers(); return true;"
+            style="margin-top:8px">
+      Отправить ответы и запустить стратегию →
+    </button>
+  </form>
+</div>
+
+<script>
+function buildAnswers() {
+  const answers = {};
+  document.querySelectorAll(".answer-input").forEach(el => {
+    answers[el.dataset.question] = el.value.trim();
+  });
+  document.getElementById("answers-json").value = JSON.stringify(answers);
+}
+</script>

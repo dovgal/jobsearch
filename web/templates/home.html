@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Job Search Consultation — Старт{% endblock %}
+{% block content %}
+
+<div style="max-width:600px;margin:0 auto">
+
+  <div style="text-align:center;padding:32px 0 24px">
+    <h1 style="font-size:28px;font-weight:700;margin-bottom:8px">
+      🔍 Job Search Consultation
+    </h1>
+    <p class="muted">Мульти-агентный карьерный консультант: стратегия, CV, LinkedIn, вакансии, outreach и подготовка к интервью.</p>
+  </div>
+
+  <!-- New session form -->
+  <div class="card">
+    <div class="card-title">✨ Новая сессия</div>
+    <form method="post" action="/session/new" enctype="multipart/form-data">
+      <div>
+        <label>Вставьте текст резюме (CV)</label>
+        <textarea name="cv_text" rows="8" placeholder="Вставьте текст вашего резюме…"></textarea>
+      </div>
+      <div class="muted mt-2" style="text-align:center">— или —</div>
+      <div class="mt-2">
+        <label>Загрузите файл (.txt, .md)</label>
+        <input type="file" name="cv_file" accept=".txt,.md,.text" style="color:var(--muted);font-size:13px">
+      </div>
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary w-full">Начать →</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Recent sessions -->
+  {% if sessions %}
+  <div class="mt-6">
+    <div class="muted" style="margin-bottom:10px;font-size:13px">Недавние сессии</div>
+    {% for s in sessions %}
+    <a href="/session/{{ s.id }}" style="text-decoration:none">
+      <div class="card mt-2 flex items-center gap-3" style="cursor:pointer">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600">{{ s.id }}</div>
+          <div class="muted" style="font-size:12px">
+            {% if s.has_strategy %}✓ Стратегия{% else %}◦ Нет стратегии{% endif %}
+            {% if s.has_jobs %} · ✓ Вакансии{% endif %}
+          </div>
+        </div>
+        <span style="color:var(--muted)">→</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+<div hx-get="/session/{{ sid }}/pipeline"
+     hx-trigger="load"
+     hx-target="#pipeline"
+     hx-swap="outerHTML">
+  <div class="flex items-center gap-2 mt-4" style="color:var(--green)">
+    <span>✓</span><span style="font-weight:600">Готово!</span>
+    <span class="muted" style="font-size:13px">Обновляю страницу…</span>
+  </div>
+</div>
+<script>htmx.trigger(document.body, "taskDone")</script>

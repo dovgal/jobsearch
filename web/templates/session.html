@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Сессия {{ sid }}{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="flex items-center gap-3 flex-wrap" style="margin-bottom:20px">
+  <h2 style="font-size:18px;font-weight:700">Сессия</h2>
+  <code style="font-size:13px;color:var(--muted);background:#11141a;padding:4px 10px;border-radius:6px">{{ sid }}</code>
+  <a href="/" class="btn btn-ghost btn-sm">← Все сессии</a>
+</div>
+
+<!-- CV preview -->
+{% if cv_preview %}
+<details class="card" style="margin-bottom:20px">
+  <summary style="cursor:pointer;font-weight:600;font-size:14px">📄 CV (превью)</summary>
+  <pre style="margin-top:12px">{{ cv_preview }}</pre>
+</details>
+{% endif %}
+
+<!-- Pipeline -->
+<div id="pipeline"
+     hx-get="/session/{{ sid }}/pipeline"
+     hx-trigger="taskDone from:body"
+     hx-swap="outerHTML">
+  {% include "partials/pipeline.html" %}
+</div>
+
+{% endblock %}
