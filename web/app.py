@@ -9,10 +9,14 @@ from typing import Any, Optional
 import io
 
 import yaml
-import docx as python_docx
-from docx import Document
-from docx.shared import Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+try:
+    import docx as python_docx
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    _DOCX_AVAILABLE = True
+except ImportError:
+    _DOCX_AVAILABLE = False
 from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -84,6 +88,8 @@ def _write_env(updates: dict[str, str]) -> None:
 
 def _extract_docx_text(data: bytes) -> str:
     """Извлечь plain-text из .docx файла."""
+    if not _DOCX_AVAILABLE:
+        return ""
     doc = Document(io.BytesIO(data))
     lines = []
     for para in doc.paragraphs:
@@ -478,6 +484,8 @@ async def download_file(sid: str, fp: str):
 @app.get("/session/{sid}/docx/{fp:path}")
 async def download_docx(sid: str, fp: str):
     """Конвертировать .md файл в .docx, используя оригинальный CV как шаблон стиля."""
+    if not _DOCX_AVAILABLE:
+        return HTMLResponse("python-docx не установлен на сервере", 503)
     path = OUTPUT_DIR / sid / fp
     if not path.is_file():
         return HTMLResponse("Файл не найден", 404)
