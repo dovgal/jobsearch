@@ -2,12 +2,11 @@ default_provider: ollama
 default_model: gpt-oss:120b
 default_temperature: 0.4
 default_max_tokens: 8192
-
 market:
   country: France
   language: fr
   currency: EUR
-  region: Île-de-France  # default, can be overridden per session
+  region: Île-de-France
 providers:
   ollama:
     base_url: https://ollama.com
