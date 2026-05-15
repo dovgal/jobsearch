@@ -4,15 +4,35 @@
 
 <!-- Header -->
 <div class="flex items-center gap-3 flex-wrap" style="margin-bottom:20px">
-  <h2 style="font-size:18px;font-weight:700">Сессия</h2>
+  <h2 style="font-size:18px;font-weight:700">
+    {% if lang == 'en' %}Session{% elif lang == 'fr' %}Session{% else %}Сессия{% endif %}
+  </h2>
   <code style="font-size:13px;color:var(--muted);background:#11141a;padding:4px 10px;border-radius:6px">{{ sid }}</code>
-  <a href="/" class="btn btn-ghost btn-sm">← Все сессии</a>
+  <a href="/" class="btn btn-ghost btn-sm">
+    {% if lang == 'en' %}← All sessions{% elif lang == 'fr' %}← Sessions{% else %}← Все сессии{% endif %}
+  </a>
+
+  <!-- Language switcher -->
+  <form method="post" action="/session/{{ sid }}/language" style="margin-left:auto;display:flex;gap:6px;align-items:center">
+    <span style="font-size:12px;color:var(--muted)">Lang:</span>
+    {% for code, flag, label in [('fr','🇫🇷','FR'), ('en','🇬🇧','EN'), ('ru','🇷🇺','RU')] %}
+    <button type="submit" name="language" value="{{ code }}"
+            style="padding:4px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;
+                   border:{% if lang == code %}2px solid var(--accent){% else %}1px solid var(--border){% endif %};
+                   background:{% if lang == code %}rgba(138,180,248,.15){% else %}transparent{% endif %};
+                   color:{% if lang == code %}var(--text){% else %}var(--muted){% endif %}">
+      {{ flag }} {{ label }}
+    </button>
+    {% endfor %}
+  </form>
 </div>
 
 <!-- CV preview -->
 {% if cv_preview %}
 <details class="card" style="margin-bottom:20px">
-  <summary style="cursor:pointer;font-weight:600;font-size:14px">📄 CV (превью)</summary>
+  <summary style="cursor:pointer;font-weight:600;font-size:14px">
+    📄 {% if lang == 'en' %}CV (preview){% elif lang == 'fr' %}CV (aperçu){% else %}CV (превью){% endif %}
+  </summary>
   <pre style="margin-top:12px">{{ cv_preview }}</pre>
 </details>
 {% endif %}

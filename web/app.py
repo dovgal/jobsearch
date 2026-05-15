@@ -271,6 +271,7 @@ def _session_ctx(sid: str) -> dict:
     if _exists("jobs_path"):
         jobs = json.loads(Path(state["jobs_path"]).read_text("utf-8"))
 
+    lang = state.get("language", "fr")
     return {
         "sid": sid,
         "cv_preview": cv_text[:400] + ("…" if len(cv_text) > 400 else ""),
@@ -282,6 +283,7 @@ def _session_ctx(sid: str) -> dict:
         "questions": questions,
         "has_intake": has_intake,
         "jobs": [j for j in jobs if (j.get("tier") or "skip") != "skip"][:30],
+        "lang": lang,
     }
 
 
@@ -308,7 +310,11 @@ async def home(request: Request):
 
 
 @app.post("/session/new")
-async def new_session(cv_text: str = Form(""), cv_file: Optional[UploadFile] = None):
+async def new_session(
+    cv_text: str = Form(""),
+    cv_file: Optional[UploadFile] = None,
+    language: str = Form("fr"),
+):
     raw_docx: bytes | None = None
     if cv_file and cv_file.filename:
         raw = await cv_file.read()
@@ -326,10 +332,23 @@ async def new_session(cv_text: str = Form(""), cv_file: Optional[UploadFile] = N
     session = Session.open(base_dir=str(OUTPUT_DIR))
     sid = session.session_id
     _cv_path(sid).write_text(content, "utf-8")
-    # Сохраняем оригинальный .docx как шаблон стиля
     if raw_docx:
         (OUTPUT_DIR / sid / "input_cv.docx").write_bytes(raw_docx)
+    lang = language if language in ("fr", "en", "ru") else "fr"
+    session.remember("language", lang)
     return RedirectResponse(f"/session/{sid}", status_code=303)
+
+
+@app.post("/session/{sid}/language", response_class=HTMLResponse)
+async def set_language(request: Request, sid: str):
+    form = await request.form()
+    lang = str(form.get("language", "fr"))
+    if lang not in ("fr", "en", "ru"):
+        lang = "fr"
+    s = _session(sid)
+    s.remember("language", lang)
+    ctx = _session_ctx(sid)
+    return templates.TemplateResponse(request, "session.html", ctx)
 
 
 @app.get("/session/{sid}", response_class=HTMLResponse)

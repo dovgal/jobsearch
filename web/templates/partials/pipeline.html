@@ -1,3 +1,39 @@
+{% set T = {
+  'strategy':      {'fr':'Stratégie',         'en':'Strategy',         'ru':'Стратегия'},
+  'done':          {'fr':'✓ Terminé',          'en':'✓ Done',           'ru':'✓ Готово'},
+  'waiting':       {'fr':'⏳ En attente',      'en':'⏳ Waiting',       'ru':'⏳ Ожидает ответов'},
+  'not_started':   {'fr':'Non démarré',        'en':'Not started',      'ru':'Не запущено'},
+  'locked_strat':  {'fr':'🔒 Stratégie requise','en':'🔒 Strategy needed','ru':'🔒 Нужна стратегия'},
+  'locked_cv':     {'fr':'🔒 CV de base requis','en':'🔒 Base CV needed', 'ru':'🔒 Нужно базовое CV'},
+  'base_cv':       {'fr':'CV de base',         'en':'Base CV',          'ru':'Базовое CV'},
+  'linkedin':      {'fr':'Profil LinkedIn',    'en':'LinkedIn Profile', 'ru':'LinkedIn-профиль'},
+  'hunt':          {'fr':'Recherche de postes','en':'Vacancy Search',   'ru':'Поиск вакансий'},
+  'vacancies':     {'fr':'vacances',           'en':'vacancies',        'ru':'вакансий'},
+  'adapt':         {'fr':'Adapter CV / Outreach / Entretien','en':'Adapt CV / Outreach / Interview','ru':'Адаптация резюме / Outreach / Интервью'},
+  'bulk':          {'fr':'Adaptation groupée Tier B','en':'Bulk Tier B Adaptation','ru':'Пакетная адаптация Tier B'},
+  'content':       {'fr':'Contenu LinkedIn',   'en':'LinkedIn Content', 'ru':'LinkedIn-контент'},
+  'gen_q':         {'fr':'Générer les questions →','en':'Generate questions →','ru':'Генерировать вопросы →'},
+  'rewrite_cv':    {'fr':'Réécrire le CV →',   'en':'Rewrite CV →',     'ru':'Переписать CV →'},
+  'create_li':     {'fr':'Créer le profil →',  'en':'Create profile →', 'ru':'Создать профиль →'},
+  'scan':          {'fr':'Lancer le scan →',   'en':'Start scan →',     'ru':'Запустить сканирование →'},
+  'bulk_run':      {'fr':'Lancer l\'adaptation →','en':'Run bulk adaptation →','ru':'Запустить пакетную адаптацию →'},
+  'content_run':   {'fr':'Créer le plan →',    'en':'Create content plan →','ru':'Создать контент-план →'},
+  'view_vac':      {'fr':'📋 Voir les postes', 'en':'📋 View vacancies','ru':'📋 Просмотр вакансий'},
+  'q_hint':        {'fr':"L'IA lira votre CV et formulera 15+ questions de clarification.",
+                    'en':"AI will read the CV and generate 15+ clarifying questions.",
+                    'ru':"Сначала Claude прочитает CV и сформирует 15+ уточняющих вопросов."},
+  'scan_hint':     {'fr':"Scan LinkedIn, WTTJ, APEC et autres canaux. Durée : 5–10 min.",
+                    'en':"Scanning LinkedIn, WTTJ, APEC and other channels. Takes 5–10 min.",
+                    'ru':"Сканирование LinkedIn, WTTJ, APEC и других каналов. Занимает 5–10 минут."},
+  'bulk_hint':     {'fr':"Adaptation légère pour toutes les offres Tier B en un passage (70–80% ATS).",
+                    'en':"Light adaptation for all Tier B vacancies in one pass (70–80% ATS).",
+                    'ru':"Лёгкая адаптация под все вакансии Tier B за один проход (70–80% ATS)."},
+  'content_hint':  {'fr':"Plan de contenu 4 semaines + posts prêts à publier dans votre ton.",
+                    'en':"4-week content plan + ready-to-publish posts in your tone of voice.",
+                    'ru':"4-недельный контент-план + готовые посты в tone of voice клиента."},
+} %}
+{% set L = lang if lang in ('fr','en','ru') else 'fr' %}
+
 <div id="pipeline">
 
 <!-- ============================================================
@@ -5,35 +41,33 @@
      ============================================================ -->
 <div class="card" id="section-strategy">
   <div class="card-title">
-    🎯 Стратегия
+    🎯 {{ T.strategy[L] }}
     {% if has_strategy %}
-      <span class="badge badge-green">✓ Готово</span>
+      <span class="badge badge-green">{{ T.done[L] }}</span>
     {% elif questions %}
-      <span class="badge badge-yellow">⏳ Ожидает ответов</span>
+      <span class="badge badge-yellow">{{ T.waiting[L] }}</span>
     {% else %}
-      <span class="badge badge-muted">Не запущено</span>
+      <span class="badge badge-muted">{{ T.not_started[L] }}</span>
     {% endif %}
   </div>
 
   {% if has_strategy %}
     <div class="flex gap-2 flex-wrap">
-      <a href="/session/{{ sid }}/file/strategy/strategy.md" class="btn btn-ghost btn-sm">⬇ Стратегия.md</a>
-      <a href="/session/{{ sid }}/file/strategy/coaching_questions.json" class="btn btn-ghost btn-sm">⬇ Вопросы.json</a>
+      <a href="/session/{{ sid }}/file/strategy/strategy.md" class="btn btn-ghost btn-sm">⬇ {{ T.strategy[L] }}.md</a>
+      <a href="/session/{{ sid }}/file/strategy/coaching_questions.json" class="btn btn-ghost btn-sm">⬇ Questions.json</a>
     </div>
 
   {% elif questions and not has_intake %}
-    <!-- Show questions form -->
     {% include "partials/questions.html" %}
 
   {% elif not questions %}
-    <!-- Step 1: generate questions -->
-    <p class="muted mt-2" style="margin-bottom:14px">Сначала Claude прочитает CV и сформирует 15+ уточняющих вопросов.</p>
+    <p class="muted mt-2" style="margin-bottom:14px">{{ T.q_hint[L] }}</p>
     <button class="btn btn-primary"
             hx-post="/session/{{ sid }}/run/questions"
             hx-target="#section-strategy"
             hx-swap="innerHTML"
             hx-indicator="#section-strategy">
-      Генерировать вопросы →
+      {{ T.gen_q[L] }}
     </button>
   {% endif %}
 </div>
@@ -43,13 +77,13 @@
      ============================================================ -->
 <div class="card {% if not has_strategy %}agent-locked{% endif %}" id="section-base-cv">
   <div class="card-title">
-    📄 Базовое CV
+    📄 {{ T.base_cv[L] }}
     {% if has_base_cv %}
-      <span class="badge badge-green">✓ Готово</span>
+      <span class="badge badge-green">{{ T.done[L] }}</span>
     {% elif not has_strategy %}
-      <span class="badge badge-muted">🔒 Нужна стратегия</span>
+      <span class="badge badge-muted">{{ T.locked_strat[L] }}</span>
     {% else %}
-      <span class="badge badge-muted">Не запущено</span>
+      <span class="badge badge-muted">{{ T.not_started[L] }}</span>
     {% endif %}
   </div>
 
@@ -57,14 +91,14 @@
     <div class="flex gap-2 flex-wrap">
       <a href="/session/{{ sid }}/docx/base_cv/base_cv.md" class="btn btn-primary btn-sm">⬇ base_cv.docx</a>
       <a href="/session/{{ sid }}/file/base_cv/base_cv.md" class="btn btn-ghost btn-sm">⬇ base_cv.md</a>
-      <a href="/session/{{ sid }}/file/base_cv/ats_report.json" class="btn btn-ghost btn-sm">⬇ ATS-отчёт</a>
+      <a href="/session/{{ sid }}/file/base_cv/ats_report.json" class="btn btn-ghost btn-sm">⬇ ATS</a>
     </div>
   {% elif has_strategy %}
     <button class="btn btn-primary"
             hx-post="/session/{{ sid }}/run/base-cv"
             hx-target="#section-base-cv"
             hx-swap="innerHTML">
-      Переписать CV →
+      {{ T.rewrite_cv[L] }}
     </button>
   {% endif %}
 </div>
@@ -74,13 +108,13 @@
      ============================================================ -->
 <div class="card {% if not has_base_cv %}agent-locked{% endif %}" id="section-linkedin">
   <div class="card-title">
-    💼 LinkedIn-профиль
+    💼 {{ T.linkedin[L] }}
     {% if has_linkedin %}
-      <span class="badge badge-green">✓ Готово</span>
+      <span class="badge badge-green">{{ T.done[L] }}</span>
     {% elif not has_base_cv %}
-      <span class="badge badge-muted">🔒 Нужно базовое CV</span>
+      <span class="badge badge-muted">{{ T.locked_cv[L] }}</span>
     {% else %}
-      <span class="badge badge-muted">Не запущено</span>
+      <span class="badge badge-muted">{{ T.not_started[L] }}</span>
     {% endif %}
   </div>
 
@@ -94,7 +128,7 @@
             hx-post="/session/{{ sid }}/run/linkedin"
             hx-target="#section-linkedin"
             hx-swap="innerHTML">
-      Создать профиль →
+      {{ T.create_li[L] }}
     </button>
   {% endif %}
 </div>
@@ -104,28 +138,28 @@
      ============================================================ -->
 <div class="card {% if not has_strategy %}agent-locked{% endif %}" id="section-hunt">
   <div class="card-title">
-    🔎 Поиск вакансий
+    🔎 {{ T.hunt[L] }}
     {% if has_jobs %}
-      <span class="badge badge-green">✓ {{ jobs|length }} вакансий</span>
+      <span class="badge badge-green">✓ {{ jobs|length }} {{ T.vacancies[L] }}</span>
     {% elif not has_strategy %}
-      <span class="badge badge-muted">🔒 Нужна стратегия</span>
+      <span class="badge badge-muted">{{ T.locked_strat[L] }}</span>
     {% else %}
-      <span class="badge badge-muted">Не запущено</span>
+      <span class="badge badge-muted">{{ T.not_started[L] }}</span>
     {% endif %}
   </div>
 
   {% if has_jobs %}
     <div class="flex gap-2 flex-wrap">
-      <a href="/session/{{ sid }}/vacancies" target="_blank" class="btn btn-primary btn-sm">📋 Просмотр вакансий</a>
+      <a href="/session/{{ sid }}/vacancies" target="_blank" class="btn btn-primary btn-sm">{{ T.view_vac[L] }}</a>
       <a href="/session/{{ sid }}/file/hunt/jobs.json" class="btn btn-ghost btn-sm">⬇ jobs.json</a>
     </div>
   {% elif has_strategy %}
-    <p class="muted mt-2" style="margin-bottom:14px">Сканирование LinkedIn, hh.ru и других каналов. Занимает 5–10 минут.</p>
+    <p class="muted mt-2" style="margin-bottom:14px">{{ T.scan_hint[L] }}</p>
     <button class="btn btn-primary"
             hx-post="/session/{{ sid }}/run/hunt"
             hx-target="#section-hunt"
             hx-swap="innerHTML">
-      Запустить сканирование →
+      {{ T.scan[L] }}
     </button>
   {% endif %}
 </div>
@@ -135,17 +169,19 @@
      ============================================================ -->
 {% if has_jobs and has_base_cv and jobs %}
 <div class="card" id="section-per-vacancy">
-  <div class="card-title">✏️ Адаптация резюме / Outreach / Интервью</div>
-  <p class="muted" style="margin-bottom:16px">Выберите вакансию и нужное действие</p>
+  <div class="card-title">✏️ {{ T.adapt[L] }}</div>
+  <p class="muted" style="margin-bottom:16px">
+    {% if L == 'fr' %}Choisissez un poste et une action{% elif L == 'en' %}Select a vacancy and action{% else %}Выберите вакансию и нужное действие{% endif %}
+  </p>
 
   <div style="overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:13px">
     <thead>
       <tr style="border-bottom:1px solid var(--border);color:var(--muted)">
-        <th style="text-align:left;padding:8px 4px">Вакансия</th>
-        <th style="text-align:left;padding:8px 4px">Компания</th>
+        <th style="text-align:left;padding:8px 4px">{% if L=='fr' %}Poste{% elif L=='en' %}Position{% else %}Вакансия{% endif %}</th>
+        <th style="text-align:left;padding:8px 4px">{% if L=='fr' %}Entreprise{% elif L=='en' %}Company{% else %}Компания{% endif %}</th>
         <th style="text-align:center;padding:8px 4px">Score</th>
-        <th style="text-align:left;padding:8px 4px">Действия</th>
+        <th style="text-align:left;padding:8px 4px">{% if L=='fr' %}Actions{% elif L=='en' %}Actions{% else %}Действия{% endif %}</th>
       </tr>
     </thead>
     <tbody>
@@ -199,13 +235,13 @@
      ============================================================ -->
 {% if has_jobs and has_base_cv %}
 <div class="card" id="section-bulk">
-  <div class="card-title">📚 Пакетная адаптация Tier B</div>
-  <p class="muted" style="margin-bottom:14px">Лёгкая адаптация под все вакансии Tier B за один проход (70–80% ATS).</p>
+  <div class="card-title">📚 {{ T.bulk[L] }}</div>
+  <p class="muted" style="margin-bottom:14px">{{ T.bulk_hint[L] }}</p>
   <button class="btn btn-ghost"
           hx-post="/session/{{ sid }}/run/bulk-resume"
           hx-target="#section-bulk"
           hx-swap="innerHTML">
-    Запустить пакетную адаптацию →
+    {{ T.bulk_run[L] }}
   </button>
 </div>
 {% endif %}
@@ -215,17 +251,17 @@
      ============================================================ -->
 <div class="card {% if not has_base_cv %}agent-locked{% endif %}" id="section-content">
   <div class="card-title">
-    📝 LinkedIn-контент
-    {% if not has_base_cv %}<span class="badge badge-muted">🔒 Нужно базовое CV</span>{% endif %}
+    📝 {{ T.content[L] }}
+    {% if not has_base_cv %}<span class="badge badge-muted">{{ T.locked_cv[L] }}</span>{% endif %}
   </div>
 
   {% if has_base_cv %}
-    <p class="muted" style="margin-bottom:14px">4-недельный контент-план + готовые посты в tone of voice клиента.</p>
+    <p class="muted" style="margin-bottom:14px">{{ T.content_hint[L] }}</p>
     <button class="btn btn-ghost"
             hx-post="/session/{{ sid }}/run/content"
             hx-target="#section-content"
             hx-swap="innerHTML">
-      Создать контент-план →
+      {{ T.content_run[L] }}
     </button>
   {% endif %}
 </div>

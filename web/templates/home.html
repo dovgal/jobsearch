@@ -15,20 +15,61 @@
   <div class="card">
     <div class="card-title">✨ Новая сессия</div>
     <form method="post" action="/session/new" enctype="multipart/form-data">
+
+      <!-- Language selector -->
+      <div style="margin-bottom:18px">
+        <label style="margin-bottom:8px">Язык вывода / Output language / Langue de sortie</label>
+        <div style="display:flex;gap:8px">
+          <label style="flex:1">
+            <input type="radio" name="language" value="fr" checked style="display:none">
+            <div class="lang-btn" data-val="fr" onclick="selectLang(this)" style="text-align:center;padding:10px;border-radius:10px;border:2px solid var(--accent);background:rgba(138,180,248,.12);cursor:pointer;font-size:15px;font-weight:600">
+              🇫🇷 Français
+            </div>
+          </label>
+          <label style="flex:1">
+            <input type="radio" name="language" value="en" style="display:none">
+            <div class="lang-btn" data-val="en" onclick="selectLang(this)" style="text-align:center;padding:10px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-size:15px;font-weight:600;color:var(--muted)">
+              🇬🇧 English
+            </div>
+          </label>
+          <label style="flex:1">
+            <input type="radio" name="language" value="ru" style="display:none">
+            <div class="lang-btn" data-val="ru" onclick="selectLang(this)" style="text-align:center;padding:10px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-size:15px;font-weight:600;color:var(--muted)">
+              🇷🇺 Русский
+            </div>
+          </label>
+        </div>
+      </div>
+
       <div>
         <label>Вставьте текст резюме (CV)</label>
-        <textarea name="cv_text" rows="8" placeholder="Вставьте текст вашего резюме…"></textarea>
+        <textarea name="cv_text" rows="8" placeholder="Вставьте текст вашего резюме… / Paste your CV… / Collez votre CV…"></textarea>
       </div>
-      <div class="muted mt-2" style="text-align:center">— или —</div>
+      <div class="muted mt-2" style="text-align:center">— или / or / ou —</div>
       <div class="mt-2">
         <label>Загрузите файл (.docx, .txt, .md)</label>
         <input type="file" name="cv_file" accept=".docx,.txt,.md,.text" style="color:var(--muted);font-size:13px">
       </div>
       <div class="mt-4">
-        <button type="submit" class="btn btn-primary w-full">Начать →</button>
+        <button type="submit" class="btn btn-primary w-full">Начать / Start / Commencer →</button>
       </div>
     </form>
   </div>
+
+  <script>
+  function selectLang(el) {
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.style.border = '1px solid var(--border)';
+      b.style.background = '';
+      b.style.color = 'var(--muted)';
+    });
+    el.style.border = '2px solid var(--accent)';
+    el.style.background = 'rgba(138,180,248,.12)';
+    el.style.color = 'var(--text)';
+    const val = el.getAttribute('data-val');
+    document.querySelector('input[name=language][value="'+val+'"]').checked = true;
+  }
+  </script>
 
   <!-- Recent sessions -->
   {% if sessions %}
