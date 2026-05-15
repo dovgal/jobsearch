@@ -23,13 +23,20 @@ class StrategyAgent(Agent):
         self.web_queries_target = int(self.agent_cfg.get("web_search_queries", 20))
 
     def generate_questions(self, cv_text: str) -> list[str]:
+        lang = self.session.recall("language", "fr")
+        lang_note = {
+            "fr": "IMPORTANT: génère toutes les questions en français.",
+            "en": "IMPORTANT: generate all questions in English.",
+            "ru": "ВАЖНО: формулируй все вопросы на русском языке.",
+        }.get(lang, "IMPORTANT: génère toutes les questions en français.")
         prompt = (
-            "Прочитай резюме клиента и сформируй 15+ уточняющих вопросов как карьерный коуч.\n"
-            "Вопросы должны вытаскивать: реальный уровень, желаемые роли, "
-            "географию, ограничения, неназванные достижения с цифрами, мотивацию.\n"
-            "Не задавай поверхностных вопросов вроде 'какие у тебя сильные стороны?'. "
-            "Каждый вопрос — конкретный, требующий конкретного ответа.\n\n"
-            "Ответ — строго JSON-массив строк. Без прозы.\n\n"
+            f"{lang_note}\n\n"
+            "Read the client's CV and generate 15+ clarifying questions as a career coach.\n"
+            "Questions should uncover: real seniority level, target roles, geography, constraints, "
+            "unmentioned achievements with numbers, motivation.\n"
+            "No shallow questions like 'what are your strengths?'. "
+            "Every question must be specific and require a concrete answer.\n\n"
+            "Reply with a strict JSON array of strings. No prose.\n\n"
             f"=== CV ===\n{cv_text}\n=== /CV ===\n"
         )
         raw = self.ask(prompt, max_tokens=3000)

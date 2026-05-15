@@ -1,6 +1,10 @@
 <div>
+  {% set L = lang if lang in ('fr','en','ru') else 'fr' %}
   <p style="font-size:14px;font-weight:600;margin-bottom:16px">
-    Claude сформировал {{ questions|length }} вопросов. Ответьте на них — это основа стратегии.
+    {% if L == 'fr' %}Claude a généré {{ questions|length }} questions. Répondez-y — c'est la base de votre stratégie.
+    {% elif L == 'en' %}Claude generated {{ questions|length }} questions. Answer them — they are the foundation of your strategy.
+    {% else %}Claude сформировал {{ questions|length }} вопросов. Ответьте на них — это основа стратегии.
+    {% endif %}
   </p>
 
   <form id="intake-form"
@@ -16,7 +20,7 @@
       </label>
       <textarea class="answer-input" rows="3"
                 data-question="{{ q | e }}"
-                placeholder="Ваш ответ…"></textarea>
+                placeholder="{% if L == 'fr' %}Votre réponse…{% elif L == 'en' %}Your answer…{% else %}Ваш ответ…{% endif %}"></textarea>
     </div>
     {% endfor %}
 
@@ -24,7 +28,10 @@
             class="btn btn-primary"
             onclick="buildAnswers(); return true;"
             style="margin-top:8px">
-      Отправить ответы и запустить стратегию →
+      {% if L == 'fr' %}Envoyer les réponses et lancer la stratégie →
+      {% elif L == 'en' %}Submit answers and launch strategy →
+      {% else %}Отправить ответы и запустить стратегию →
+      {% endif %}
     </button>
   </form>
 </div>
