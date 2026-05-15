@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Job Search Consultation{% endblock %}</title>
+
+<!-- Open Graph / Telegram preview -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="{% block og_title %}Job Search Consultation{% endblock %}">
+<meta property="og:description" content="{% block og_description %}Мульти-агентный карьерный консультант на базе ИИ: стратегия поиска работы, переработка CV, оптимизация LinkedIn-профиля, поиск вакансий и подготовка к интервью. Настроен на рынок труда Франции 2024–2025.{% endblock %}">
+<meta property="og:image" content="{% block og_image %}/static/og-preview.png{% endblock %}">
+<meta property="og:locale" content="fr_FR">
+
+<!-- Twitter Card (также используется некоторыми мессенджерами) -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{% block tw_title %}Job Search Consultation{% endblock %}">
+<meta name="twitter:description" content="{% block tw_description %}Мульти-агентный карьерный консультант на базе ИИ: стратегия поиска работы, переработка CV, оптимизация LinkedIn-профиля, поиск вакансий и подготовка к интервью. Настроен на рынок труда Франции 2024–2025.{% endblock %}">
+<meta name="twitter:image" content="/static/og-preview.png">
+
+<meta name="description" content="Мульти-агентный карьерный консультант на базе ИИ для рынка труда Франции.">
 <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
 <style>
   :root {
