@@ -31,8 +31,14 @@ class Agent:
     # ----- LLM helpers -----
 
     def system_prompt(self) -> str:
+        parts: list[str] = []
+        market_ctx = PROMPTS_DIR / "market-context.md"
+        if market_ctx.exists():
+            parts.append(market_ctx.read_text("utf-8"))
         path = PROMPTS_DIR / f"{self.name}.md"
-        return path.read_text("utf-8") if path.exists() else ""
+        if path.exists():
+            parts.append(path.read_text("utf-8"))
+        return "\n\n---\n\n".join(parts)
 
     def ask(
         self,

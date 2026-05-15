@@ -1,111 +1,126 @@
-# ===== Global defaults =====
 default_provider: ollama
 default_model: gpt-oss:120b
 default_temperature: 0.4
 default_max_tokens: 8192
 
-# ===== Provider catalog =====
-# Каждый провайдер описывает endpoint, env-переменную с ключом
-# и модель, которая будет использована, если агент явно не указал свою.
+market:
+  country: France
+  language: fr
+  currency: EUR
+  region: Île-de-France  # default, can be overridden per session
 providers:
   ollama:
-    # Облачный endpoint Ollama Turbo. Тот же URL работает локально (http://localhost:11434).
     base_url: https://ollama.com
     api_key_env: OLLAMA_API_KEY
     model: gpt-oss:120b
-
   anthropic:
     base_url: https://api.anthropic.com
     api_key_env: ANTHROPIC_API_KEY
     model: claude-opus-4-5
-    anthropic_version: "2023-06-01"
-
+    anthropic_version: '2023-06-01'
   xai:
     base_url: https://api.x.ai/v1
     api_key_env: XAI_API_KEY
     model: grok-4
-
   google:
     base_url: https://generativelanguage.googleapis.com/v1beta
     api_key_env: GOOGLE_API_KEY
     model: gemini-2.5-pro
-
   deepseek:
     base_url: https://api.deepseek.com/v1
     api_key_env: DEEPSEEK_API_KEY
     model: deepseek-chat
-
   qwen:
-    # OpenAI-совместимый endpoint DashScope
     base_url: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
     api_key_env: DASHSCOPE_API_KEY
     model: qwen-max
-
   openrouter:
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
     model: anthropic/claude-opus-4
-
-# ===== Per-agent overrides =====
-# Любому агенту можно задать собственного провайдера/модель/температуру.
 agents:
   strategy:
-    # стратегия — самая дорогая по качеству, держим на топовой модели
     provider: ollama
     model: gpt-oss:120b
     temperature: 0.5
     max_tokens: 16000
-    web_search_queries: 24      # сколько запросов агент сделает в web
-
+    web_search_queries: 24
   base-cv:
     provider: ollama
     temperature: 0.3
-    ats_target_score: 0.85      # ниже не выпускаем
-
+    ats_target_score: 0.85
   linkedin:
     provider: ollama
     temperature: 0.45
-
   vacancy-hunter:
     provider: ollama
     temperature: 0.2
-    per_channel_limit: 50       # топ-N с канала
-    score_threshold: 0.55       # ниже не показываем клиенту
-
+    per_channel_limit: 50
+    score_threshold: 0.55
   resume:
     provider: ollama
     temperature: 0.3
-
   bulk-resume:
-    # пакетная адаптация — гоняем на дешёвой модели
     provider: ollama
     model: gpt-oss:20b
     temperature: 0.3
-
   outreach:
     provider: ollama
     temperature: 0.6
-
   content:
     provider: ollama
     temperature: 0.7
-
   interview:
     provider: ollama
     temperature: 0.4
-
-# ===== Web search =====
 web_search:
-  # порядок попыток: первый рабочий ключ — победил
-  providers: [brave, tavily, serper]
+  providers:
+  - brave
+  - tavily
+  - serper
   results_per_query: 8
-
-# ===== Job channels =====
-# vacancy-hunter включит те каналы, которые требует стратегия
 job_channels:
-  linkedin:    { enabled: true,  weight: 1.0 }
-  hh_ru:       { enabled: true,  weight: 0.8 }
-  web3_career: { enabled: false, weight: 1.0 }
-  crypto_jobs: { enabled: false, weight: 1.0 }
-  telegram:    { enabled: false, weight: 0.6, channels: [] }
-  agencies:    { enabled: false, weight: 0.7, sites: [] }
+  linkedin:
+    enabled: true
+    weight: 1.0
+  welcome_to_the_jungle:
+    enabled: true
+    weight: 1.0
+  apec:
+    enabled: true
+    weight: 0.95
+  cadremploi:
+    enabled: true
+    weight: 0.85
+  indeed_fr:
+    enabled: true
+    weight: 0.8
+  hellowork:
+    enabled: true
+    weight: 0.75
+  france_travail:
+    enabled: true
+    weight: 0.7
+  figaro_emploi:
+    enabled: false
+    weight: 0.65
+  malt:
+    enabled: false
+    weight: 0.7
+  hh_ru:
+    enabled: false
+    weight: 0.0
+  web3_career:
+    enabled: false
+    weight: 1.0
+  crypto_jobs:
+    enabled: false
+    weight: 1.0
+  telegram:
+    enabled: false
+    weight: 0.6
+    channels: []
+  agencies:
+    enabled: false
+    weight: 0.7
+    sites: []
