@@ -93,42 +93,97 @@ def _extract_docx_text(data: bytes) -> str:
     return "\n".join(lines)
 
 
-def _markdown_to_docx(md_text: str) -> bytes:
-    """Конвертировать markdown в .docx и вернуть bytes."""
-    doc = Document()
+def _apply_run_style(run, bold: bool = False, font_name: str = "Open Sans",
+                     font_size_pt: float | None = None,
+                     color_hex: str = "333333") -> None:
+    run.bold = bold
+    run.font.name = font_name
+    if font_size_pt:
+        run.font.size = python_docx.shared.Pt(font_size_pt)
+    run.font.color.rgb = RGBColor.from_string(color_hex)
 
-    # Стили страницы
-    section = doc.sections[0]
-    section.page_width = python_docx.shared.Cm(21)
-    section.page_height = python_docx.shared.Cm(29.7)
-    section.top_margin = python_docx.shared.Cm(2)
-    section.bottom_margin = python_docx.shared.Cm(2)
-    section.left_margin = python_docx.shared.Cm(2.5)
-    section.right_margin = python_docx.shared.Cm(2.5)
+
+def _add_styled_para(doc: Document, text: str, style: str,
+                     bold: bool = False, font_size_pt: float | None = None,
+                     color_hex: str = "333333", align=WD_ALIGN_PARAGRAPH.JUSTIFY) -> None:
+    """Добавить параграф с явным применением шрифта Open Sans."""
+    parts = text.split("**")
+    p = doc.add_paragraph(style=style)
+    p.alignment = align
+    for i, part in enumerate(parts):
+        if not part:
+            continue
+        is_bold = (i % 2 == 1) or bold
+        run = p.add_run(part)
+        _apply_run_style(run, bold=is_bold, font_size_pt=font_size_pt, color_hex=color_hex)
+
+
+def _markdown_to_docx(md_text: str, template_path: str | Path | None = None) -> bytes:
+    """Конвертировать markdown в .docx, сохраняя стиль шаблона если задан."""
+
+    # Открываем шаблон (оригинальный CV) либо чистый документ
+    if template_path and Path(template_path).exists():
+        doc = Document(str(template_path))
+        # Очищаем всё содержимое, сохраняя стили и поля
+        from docx.oxml.ns import qn as _qn
+        body = doc.element.body
+        sect_pr = body.find(_qn("w:sectPr"))
+        for child in list(body):
+            if child is not sect_pr:
+                body.remove(child)
+    else:
+        doc = Document()
+        section = doc.sections[0]
+        section.page_width = python_docx.shared.Cm(21)
+        section.page_height = python_docx.shared.Cm(29.7)
+        section.top_margin = python_docx.shared.Cm(2)
+        section.bottom_margin = python_docx.shared.Cm(0.5)
+        section.left_margin = python_docx.shared.Cm(2.5)
+        section.right_margin = python_docx.shared.Cm(2.5)
+
+    # Определяем доступные стили (из шаблона или стандартные)
+    style_names = {s.name for s in doc.styles}
+    S_TITLE   = "Title"       if "Title" in style_names else "Normal"
+    S_NORMAL  = "Normal"
+    S_BODY    = "Body Text"   if "Body Text" in style_names else "Normal"
+    S_BULLET  = "Body Text"   if "Body Text" in style_names else "List Bullet"
 
     for line in md_text.splitlines():
         stripped = line.rstrip()
 
-        if stripped.startswith("### "):
-            p = doc.add_heading(stripped[4:], level=3)
+        # # Имя / заголовок первого уровня
+        if stripped.startswith("# "):
+            _add_styled_para(doc, stripped[2:], S_TITLE, bold=True,
+                             font_size_pt=16, color_hex="000000")
+
+        # ## Секция (PROFIL, EXPÉRIENCES, etc.)
         elif stripped.startswith("## "):
-            p = doc.add_heading(stripped[3:], level=2)
-        elif stripped.startswith("# "):
-            p = doc.add_heading(stripped[2:], level=1)
+            _add_styled_para(doc, stripped[3:].upper(), S_TITLE, bold=True,
+                             font_size_pt=12, color_hex="333333")
+
+        # ### Должность / дата (bold 10pt)
+        elif stripped.startswith("### "):
+            _add_styled_para(doc, stripped[4:], S_NORMAL, bold=True,
+                             font_size_pt=10, color_hex="333333")
+
+        # #### Компания (bold 10pt)
+        elif stripped.startswith("#### "):
+            _add_styled_para(doc, stripped[5:], S_NORMAL, bold=True,
+                             font_size_pt=10, color_hex="333333")
+
+        # - bullet
         elif stripped.startswith(("- ", "* ")):
-            p = doc.add_paragraph(stripped[2:], style="List Bullet")
-        elif stripped.startswith(("  - ", "  * ")):
-            p = doc.add_paragraph(stripped[4:], style="List Bullet 2")
-        elif stripped == "" or stripped == "---":
-            doc.add_paragraph("")
+            _add_styled_para(doc, stripped[2:], S_BULLET, bold=False,
+                             color_hex="333333")
+
+        # Разделитель
+        elif stripped == "---" or stripped == "":
+            doc.add_paragraph("", style=S_BODY)
+
+        # Обычный текст / контактная информация
         else:
-            # Обработка inline bold (**text**)
-            p = doc.add_paragraph()
-            parts = stripped.split("**")
-            for i, part in enumerate(parts):
-                run = p.add_run(part)
-                if i % 2 == 1:
-                    run.bold = True
+            _add_styled_para(doc, stripped, S_BODY, bold=False,
+                             color_hex="333333")
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -248,10 +303,12 @@ async def home(request: Request):
 
 @app.post("/session/new")
 async def new_session(cv_text: str = Form(""), cv_file: Optional[UploadFile] = None):
+    raw_docx: bytes | None = None
     if cv_file and cv_file.filename:
         raw = await cv_file.read()
         if cv_file.filename.lower().endswith(".docx"):
             content = _extract_docx_text(raw).strip()
+            raw_docx = raw
         else:
             content = raw.decode("utf-8", errors="ignore").strip()
     else:
@@ -261,8 +318,12 @@ async def new_session(cv_text: str = Form(""), cv_file: Optional[UploadFile] = N
         return RedirectResponse("/", status_code=303)
 
     session = Session.open(base_dir=str(OUTPUT_DIR))
-    _cv_path(session.session_id).write_text(content, "utf-8")
-    return RedirectResponse(f"/session/{session.session_id}", status_code=303)
+    sid = session.session_id
+    _cv_path(sid).write_text(content, "utf-8")
+    # Сохраняем оригинальный .docx как шаблон стиля
+    if raw_docx:
+        (OUTPUT_DIR / sid / "input_cv.docx").write_bytes(raw_docx)
+    return RedirectResponse(f"/session/{sid}", status_code=303)
 
 
 @app.get("/session/{sid}", response_class=HTMLResponse)
@@ -416,12 +477,13 @@ async def download_file(sid: str, fp: str):
 
 @app.get("/session/{sid}/docx/{fp:path}")
 async def download_docx(sid: str, fp: str):
-    """Конвертировать .md файл в .docx и отдать для скачивания."""
+    """Конвертировать .md файл в .docx, используя оригинальный CV как шаблон стиля."""
     path = OUTPUT_DIR / sid / fp
     if not path.is_file():
         return HTMLResponse("Файл не найден", 404)
     md_text = path.read_text("utf-8")
-    docx_bytes = _markdown_to_docx(md_text)
+    template = OUTPUT_DIR / sid / "input_cv.docx"
+    docx_bytes = _markdown_to_docx(md_text, template_path=template if template.exists() else None)
     filename = path.stem + ".docx"
     return StreamingResponse(
         io.BytesIO(docx_bytes),
