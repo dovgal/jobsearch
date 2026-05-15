@@ -6,9 +6,15 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
+import io
+
 import yaml
+import docx as python_docx
+from docx import Document
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from fastapi import FastAPI, Form, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -71,6 +77,64 @@ def _write_env(updates: dict[str, str]) -> None:
             lines.append(f"{k}={v}")
 
     ENV_PATH.write_text("\n".join(lines) + "\n", "utf-8")
+
+# ---------------------------------------------------------------------------
+# Word (.docx) helpers
+# ---------------------------------------------------------------------------
+
+def _extract_docx_text(data: bytes) -> str:
+    """Извлечь plain-text из .docx файла."""
+    doc = Document(io.BytesIO(data))
+    lines = []
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if text:
+            lines.append(text)
+    return "\n".join(lines)
+
+
+def _markdown_to_docx(md_text: str) -> bytes:
+    """Конвертировать markdown в .docx и вернуть bytes."""
+    doc = Document()
+
+    # Стили страницы
+    section = doc.sections[0]
+    section.page_width = python_docx.shared.Cm(21)
+    section.page_height = python_docx.shared.Cm(29.7)
+    section.top_margin = python_docx.shared.Cm(2)
+    section.bottom_margin = python_docx.shared.Cm(2)
+    section.left_margin = python_docx.shared.Cm(2.5)
+    section.right_margin = python_docx.shared.Cm(2.5)
+
+    for line in md_text.splitlines():
+        stripped = line.rstrip()
+
+        if stripped.startswith("### "):
+            p = doc.add_heading(stripped[4:], level=3)
+        elif stripped.startswith("## "):
+            p = doc.add_heading(stripped[3:], level=2)
+        elif stripped.startswith("# "):
+            p = doc.add_heading(stripped[2:], level=1)
+        elif stripped.startswith(("- ", "* ")):
+            p = doc.add_paragraph(stripped[2:], style="List Bullet")
+        elif stripped.startswith(("  - ", "  * ")):
+            p = doc.add_paragraph(stripped[4:], style="List Bullet 2")
+        elif stripped == "" or stripped == "---":
+            doc.add_paragraph("")
+        else:
+            # Обработка inline bold (**text**)
+            p = doc.add_paragraph()
+            parts = stripped.split("**")
+            for i, part in enumerate(parts):
+                run = p.add_run(part)
+                if i % 2 == 1:
+                    run.bold = True
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
+
 
 # ---------------------------------------------------------------------------
 # App
@@ -185,7 +249,11 @@ async def home(request: Request):
 @app.post("/session/new")
 async def new_session(cv_text: str = Form(""), cv_file: Optional[UploadFile] = None):
     if cv_file and cv_file.filename:
-        content = (await cv_file.read()).decode("utf-8", errors="ignore").strip()
+        raw = await cv_file.read()
+        if cv_file.filename.lower().endswith(".docx"):
+            content = _extract_docx_text(raw).strip()
+        else:
+            content = raw.decode("utf-8", errors="ignore").strip()
     else:
         content = cv_text.strip()
 
@@ -344,6 +412,22 @@ async def download_file(sid: str, fp: str):
     if path.is_file():
         return FileResponse(str(path), filename=path.name)
     return HTMLResponse("Файл не найден", 404)
+
+
+@app.get("/session/{sid}/docx/{fp:path}")
+async def download_docx(sid: str, fp: str):
+    """Конвертировать .md файл в .docx и отдать для скачивания."""
+    path = OUTPUT_DIR / sid / fp
+    if not path.is_file():
+        return HTMLResponse("Файл не найден", 404)
+    md_text = path.read_text("utf-8")
+    docx_bytes = _markdown_to_docx(md_text)
+    filename = path.stem + ".docx"
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 # ---------------------------------------------------------------------------

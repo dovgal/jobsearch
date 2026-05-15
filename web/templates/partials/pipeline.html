@@ -55,6 +55,7 @@
 
   {% if has_base_cv %}
     <div class="flex gap-2 flex-wrap">
+      <a href="/session/{{ sid }}/docx/base_cv/base_cv.md" class="btn btn-primary btn-sm">⬇ base_cv.docx</a>
       <a href="/session/{{ sid }}/file/base_cv/base_cv.md" class="btn btn-ghost btn-sm">⬇ base_cv.md</a>
       <a href="/session/{{ sid }}/file/base_cv/ats_report.json" class="btn btn-ghost btn-sm">⬇ ATS-отчёт</a>
     </div>
@@ -84,7 +85,10 @@
   </div>
 
   {% if has_linkedin %}
-    <a href="/session/{{ sid }}/file/linkedin/profile.md" class="btn btn-ghost btn-sm">⬇ LinkedIn profile.md</a>
+    <div class="flex gap-2 flex-wrap">
+      <a href="/session/{{ sid }}/docx/linkedin/profile.md" class="btn btn-primary btn-sm">⬇ profile.docx</a>
+      <a href="/session/{{ sid }}/file/linkedin/profile.md" class="btn btn-ghost btn-sm">⬇ profile.md</a>
+    </div>
   {% elif has_base_cv %}
     <button class="btn btn-primary"
             hx-post="/session/{{ sid }}/run/linkedin"
