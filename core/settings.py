@@ -17,7 +17,7 @@ class Settings:
 
     @classmethod
     def load(cls, path: Path | str | None = None) -> "Settings":
-        load_dotenv()  # подхватываем .env, если есть
+        load_dotenv(override=True)  # подхватываем .env, если есть; override=True чтобы обновлять ключи без перезапуска
         with open(path or CONFIG_PATH, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         return cls(raw=data)
